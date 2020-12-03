@@ -1,0 +1,3 @@
+requests
+dataclasses_json
+python-telegram-bot
