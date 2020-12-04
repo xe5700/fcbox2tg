@@ -1,3 +1,5 @@
-requests
+requests>=2.25.0
 dataclasses_json
-python-telegram-bot
+python-telegram-bot>=13.1
+crontab>=0.22.9
+json2python-models

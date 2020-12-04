@@ -2,3 +2,4 @@ config.json
 .idea
 *.pyx
 __pycache__
+*.iml
