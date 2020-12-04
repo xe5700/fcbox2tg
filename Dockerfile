@@ -14,4 +14,4 @@ USER app
 WORKDIR /app
 ADD *.py ./
 VOLUME ["/config"]
-CMD ["python3", "./docker.py" ]
+CMD ["python3", "./mainapp.py" ]
