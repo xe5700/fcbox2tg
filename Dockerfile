@@ -1,7 +1,7 @@
 FROM python:3-alpine
 ENV TZ=Asia/Shanghai
 ENV CONFIG_PATH="/config/config.json"
-RUN adduser app -D
+RUN adduser app -D && mkdir -p /config /app && chown -R app:app /app /config
 RUN apk add --no-cache tzdata build-base libffi-dev openssl-dev
 WORKDIR /tmp
 ADD requirements.txt ./
