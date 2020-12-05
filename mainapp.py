@@ -26,11 +26,12 @@ from utils import *
 包裹信息读取任务: asyncio.Task
 包裹定时提醒任务: asyncio.Task
 
+main_task: Task
+
 
 def stop_me(_signo, _stack):
     print("Docker container has stoped....")
-    for taskx in asyncio.all_tasks():
-        taskx.done()
+    main_task.cancel("Container or application stoped")
 
 
 def 格式化时间间隔(td: timedelta):
@@ -111,6 +112,7 @@ class Application:
 
     async def main(self):
         try:
+            main_task = asyncio.current_task()
             self._sent_packages = dict()
             self._last_error = datetime.now()
             env = os.environ

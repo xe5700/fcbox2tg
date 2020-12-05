@@ -1,10 +1,6 @@
 FROM arm64v8/python:3-alpine
 COPY qemu-aarch64-static /usr/bin/
-ENV CRON_DICT_UPDATE='30 9 * * *'
 ENV TZ=Asia/Shanghai
-ENV USE_TELEGRAM=False
-ENV TG_TOKEN=TOKEN
-ENV TG_CHAT_IDS=[]
 ENV CONFIG_PATH="/config/config.json"
 RUN adduser app -D
 RUN apk add --no-cache tzdata build-base libffi-dev openssl-dev
