@@ -1,0 +1,25 @@
+FROM python:3-alpine
+ENV CRON_DICT_UPDATE='30 9 * * *'
+ENV TZ=Asia/Shanghai
+ENV USE_TELEGRAM=False
+ENV TG_TOKEN=TOKEN
+ENV TG_CHAT_IDS=[]
+ENV CONFIG_PATH="/config/config.json"
+RUN adduser app -D
+RUN sed -i "s@http://dl-cdn.alpinelinux.org/@https://mirrors.huaweicloud.com/@g" /etc/apk/repositories && \
+mkdir -p ~/.pip && \
+echo '\
+[global] \n\
+index-url = https://mirrors.huaweicloud.com/repository/pypi/simple \n\
+trusted-host = mirrors.huaweicloud.com \n\
+timeout = 120 \n\
+' > ~/.pip/pip.conf
+RUN apk add --no-cache tzdata build-base libffi-dev openssl-dev
+WORKDIR /tmp
+ADD requirements.txt ./
+RUN pip3 install -r requirements.txt && rm requirements.txt
+USER app
+WORKDIR /app
+ADD *.py ./
+VOLUME ["/config"]
+CMD ["python3", "./mainapp.py" ]

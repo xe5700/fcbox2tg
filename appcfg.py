@@ -42,8 +42,8 @@ class Config:
     device: str
     ip: str
     token: str
-    fc_ver_code: str = "2029000"
-    fc_ver_name: str = "2.29.0"
+    fc_ver_code: str = "2030000"
+    fc_ver_name: str = "2.30.0"
     user_agent: str = "channel=yingyongbao,deviceId={device_id},ip={ip},mac=02:00:00:00:00:00," \
                       "os=7.1.2,platform=Android,resolution=1080*1920,versionCode={fc_code},versionName={fc_ver}," \
                       "timestamp={timestamp}"

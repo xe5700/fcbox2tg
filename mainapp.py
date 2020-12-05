@@ -134,10 +134,11 @@ class Application:
                               token=""
                               )
             logging.info("正在载入配置文件")
-            if path.exists("config.json"):
-                with open("config.json", mode="r", encoding="utf-8") as f:
+            config_path = env.get("CONFIG_PATH", "config.json")
+            if path.exists(config_path):
+                with open(config_path, mode="r", encoding="utf-8") as f:
                     self.cfg = Config.from_json(f.read())
-            with open("config.json", mode="w+", encoding="utf-8") as f:
+            with open(config_path, mode="w+", encoding="utf-8") as f:
                 f.write(self.cfg.to_json(indent=4, ensure_ascii=False))
             if self.cfg.token == "":
                 logging.error("未设置丰巢的token,无法运行此程序。")
