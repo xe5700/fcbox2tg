@@ -50,7 +50,7 @@ class TgBot:
         未取包裹: List[fcboxjson.FcBoxPackage] = list()
         if result.success:
             for kj in result.data:
-                if kj.pick_type != 3 and kj.pick_type != 21:
+                if not fcbox.检查包裹是否取出(kj):
                     未取包裹.append(kj)
             sb = StringIO()
             i = 0
@@ -80,7 +80,7 @@ class TgBot:
         async def asyncrefresh():
             try:
                 s_time = time.time_ns()
-                await self.app.处理快件()
+                await self.app.读取包裹信息()
                 msg1.edit_text("刷新完成 用时 %.2fms" % ((time.time_ns()-s_time)/(1000*1000)))
                 await asyncio.sleep(60)
                 msg1.delete()

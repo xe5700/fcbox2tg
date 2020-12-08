@@ -24,7 +24,7 @@ def 获取快件列表(cfg: Config) -> fcboxjson.FcBoxPackageReponse:
 
 
 def 检查包裹是否取出(pack: fcboxjson.FcBoxPackage) -> bool:
-    if pack.pick_type == 3 or pack.pick_type == 21 or pack.pick_type != 1 or pack.pick_tm is not None:
-        return True
-    else:
+    if pack.pick_tm is not None:
         return False
+    else:
+        return True
