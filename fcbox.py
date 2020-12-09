@@ -20,11 +20,17 @@ def 获取快件列表(cfg: Config) -> fcboxjson.FcBoxPackageReponse:
     }
     rep = requests.get("https://consumer.fcbox.com/post/express/getReceive?pageNo=1&queryType=3"
                        "&isShowAssociateExpress=1", headers=headers)
-    return fcboxjson.FcBoxPackageReponse.from_json(rep.text)
+    nrep = fcboxjson.FcBoxPackageReponse.from_json(rep.text)
+    if nrep.success:
+        for i in range(0, len(nrep.data)):
+            ii = nrep.data[i]
+            if type(ii) == dict:
+                nrep.data[i] = fcboxjson.FcBoxPackage.from_dict(ii)
+    return nrep
 
 
 def 检查包裹是否取出(pack: fcboxjson.FcBoxPackage) -> bool:
-    if pack.pick_tm is not None:
+    if pack.pick_tm is None:
         return False
     else:
         return True

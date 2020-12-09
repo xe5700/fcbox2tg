@@ -4,7 +4,7 @@ import signal
 from asyncio.tasks import Task
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 import logging
 from os import path
@@ -34,18 +34,32 @@ def stop_me(_signo, _stack):
     main_task.cancel("Container or application stoped")
 
 
-def 格式化时间间隔(td: timedelta):
+def 格式化时间间隔(td: timedelta, s: bool = False):
     mm, ss = divmod(td.total_seconds(), 60)
     hh, mm = divmod(mm, 60)
     if hh > 0:
         if mm > 0:
-            return "{}小时 {}分钟".format(hh, mm)
+            if s:
+                return "%d小时 %d分钟" % (hh, mm)
+            else:
+                return "%d时%d分" % (hh, mm)
         else:
-            return "{}小时".format(hh)
+            if s:
+                return "%d小时" % hh
+            else:
+                return "%d时" % hh
     if hh == 0 and mm > 0:
-        return "{}分钟 {}秒".format(mm, ss)
+        if s:
+            return "%d分钟 %d秒" % (mm, ss)
+        else:
+            return "%d分%d秒" % (mm, ss)
     else:
-        return "{}秒".format(ss)
+        return "%d秒" % ss
+
+
+def 短格式化时间间隔(td: timedelta):
+    格式化时间间隔(td, True)
+
 
 @dataclass
 class Application:
@@ -87,7 +101,7 @@ class Application:
                     logging.debug("快件柜地址：" + kj.ed_adress)
                     if kj.pick_tm:
                         logging.debug("取件日期：" + kj.pick_tm.isoformat())
-                    if not fcbox.检查包裹是否取出(kj):
+                    if fcbox.检查包裹是否取出(kj):
                         logging.debug(f"快件{kj.expressid}已经被领取，将不再提示。")
                         if kj.postid in self._sent_packages:
                             self._sent_packages[kj.postid].已取出()
@@ -168,6 +182,7 @@ class Application:
                 if len(self.cfg.smtp.short_title_only_push_list) > 0:
                     self.smtp.send(self.cfg.smtp.short_title_only_push_list, "丰巢推送助手已经启动成功",
                                    f"成功在{datetime.now().isoformat()}启动了丰巢推送助手")
+                    
             await self.t1
             await self.t2
         except asyncio.CancelledError as e:
@@ -186,6 +201,26 @@ class 未取包裹:
     notice_time: Optional[datetime] = None
     next_pay_time: Optional[datetime] = None
     需要氪金 = False
+
+    @staticmethod
+    def _获得过滤过期推送的邮箱列表(original: List[str]) -> Optional[List[str]]:
+        nl = original.copy()
+        for i in app.cfg.smtp.timing_push_blacklist:
+            nl.remove(i)
+        for i in app.cfg.smtp.expire_push_blacklist:
+            nl.remove(i)
+        if len(nl) == 0:
+            return None
+        return nl
+
+    @staticmethod
+    def _获得过滤定期推送的邮箱列表(original: List[str]) -> Optional[List[str]]:
+        nl = original.copy()
+        for i in app.cfg.smtp.timing_push_blacklist:
+            nl.remove(i)
+        if len(nl) == 0:
+            return None
+        return nl
 
     async def 检查(self) -> None:
         kj = self.package
@@ -208,7 +243,8 @@ class 未取包裹:
                       f"取件码:{kj.code}\n" \
                       f"到柜时间:{kj.send_tm.isoformat()}\n" \
                       f"收费开始时间:{kj.retention_tm.isoformat()}"
-                shortmsg = f"{kj.staff_company_name} 取件码:{kj.code} {kj.ed_adress[len(kj.ed_adress)-4:4]}"
+                shortmsg = f"{kj.comp_simple_name} 取件码:{kj.code} " \
+                           f"到 {kj.ed_adress[len(kj.ed_adress) - 4:4]}{kj.ed_adress[:len(kj.ed_adress) - 4]} 领"
                 if len(self.app.cfg.smtp.recivers) > 0:
                     self.app.smtp.send(self.app.smtp.cfg.recivers, "丰巢推送姬", msg)
                 if len(self.app.cfg.smtp.short_push_list) > 0:
@@ -221,7 +257,7 @@ class 未取包裹:
                 放柜里的时间 = datetime.now() - kj.send_tm
                 收费剩余时间 = kj.retention_tm - datetime.now()
                 print(f"丰巢推送姬：你的{kj.staff_company_name} [{kj.expressid}] 已经到柜 {格式化时间间隔(放柜里的时间)} 在"
-                      f"{格式化时间间隔(收费剩余时间)}后将会收费 请尽快领取 取件码:{kj.code}")
+                      f"{短格式化时间间隔(收费剩余时间)}后将会收费 请尽快领取 取件码:{kj.code}")
                 if self.app.cfg.timing_push:
                     if self.app.cfg.telegram.enabled:
                         msgs = self.app.tg_bot.sendMessage(text=f"{kj.expressid} [{kj.staff_company_name}] 已到柜 \n"
@@ -237,11 +273,16 @@ class 未取包裹:
                               f"取件码:{kj.code}\n" \
                               f"这个快递已经放丰巢里{格式化时间间隔(放柜里的时间)}了\n" \
                               f"{格式化时间间隔(收费剩余时间)}后这个快递要开始收费领取"
-                        sendlist = self.app.cfg.smtp.recivers
-                        for i in self.app.cfg.smtp.extra_push_blacklist:
-                            sendlist.remove(i)
-                        if len(sendlist) != 0:
+                        shortmsg = f"{kj.comp_simple_name} 取件码:{kj.code} {短格式化时间间隔(收费剩余时间)}后收费"
+                        sendlist = self._获得过滤过期推送的邮箱列表(self.app.cfg.smtp.recivers)
+                        if sendlist:
                             self.app.smtp.send(sendlist, "丰巢推送姬", msg)
+                        sendlist = self._获得过滤过期推送的邮箱列表(self.app.cfg.smtp.short_title_only_push_list)
+                        if sendlist:
+                            self.app.smtp.send(sendlist, shortmsg, "请注意将会收费")
+                        sendlist = self._获得过滤过期推送的邮箱列表(self.app.cfg.smtp.short_push_list)
+                        if sendlist:
+                            self.app.smtp.send(sendlist, "丰巢", msg)
                     self.notice_time = datetime.now() + min(max(timedelta(minutes=10), 收费剩余时间 / 2), timedelta(
                         hours=6), 收费剩余时间)
             else:
@@ -275,11 +316,16 @@ class 未取包裹:
                               f'这个快递已经放丰巢里{格式化时间间隔(放柜里的时间)}了\n' \
                               f'需要收费{money}¥ 下次请尽早领取\n' \
                               f'{格式化时间间隔(下一个收费周期间隔)}后将会涨价，上限是3元。'
-                        sendlist = self.app.cfg.smtp.recivers
-                        for i in self.app.cfg.smtp.expire_push_blacklist:
-                            sendlist.remove(i)
-                        if len(sendlist) != 0:
+                        shortmsg = f"{kj.comp_simple_name} 取件码:{kj.code} 收费{money}¥ {短格式化时间间隔(下一个收费周期间隔)}后涨价"
+                        sendlist = self._获得过滤过期推送的邮箱列表(self.app.cfg.smtp.recivers)
+                        if sendlist:
                             self.app.smtp.send(sendlist, "丰巢推送姬", msg)
+                        sendlist = self._获得过滤过期推送的邮箱列表(self.app.cfg.smtp.short_push_list)
+                        if sendlist:
+                            self.app.smtp.send(sendlist, "丰巢", shortmsg)
+                        sendlist = self._获得过滤过期推送的邮箱列表(self.app.cfg.smtp.short_title_only_push_list)
+                        if sendlist:
+                            self.app.smtp.send(sendlist, shortmsg, "请看标题注意收费")
                 self.notice_time = datetime.now() + min(max(timedelta(minutes=10), 下一个收费周期间隔 / 2), timedelta(
                     hours=6), 下一个收费周期间隔)
 
