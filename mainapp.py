@@ -73,6 +73,7 @@ class Application:
     loop: Optional[asyncio.AbstractEventLoop] = None
     _sent_packages: Dict[str, '未取包裹'] = field(default_factory=dict)
     _last_error: datetime = datetime.now()
+    _config_path: str = None
 
     async def _包裹定时提醒处理(self):
         try:
@@ -132,6 +133,16 @@ class Application:
             logging.info("10分钟后再次处理丰巢快递包裹")
             await asyncio.sleep(600)
 
+    def loadCfg(self):
+        p = self._config_path
+        with open(p, mode="r", encoding="utf-8") as f:
+            self.cfg = Config.from_json(f.read())
+
+    def saveCfg(self):
+        p = self._config_path
+        with open(p, mode="w+", encoding="utf-8") as f:
+            f.write(self.cfg.to_json(indent=4, ensure_ascii=False))
+
     async def main(self):
         try:
             self._last_error = datetime.now()
@@ -156,12 +167,10 @@ class Application:
                               token=""
                               )
             logging.info("正在载入配置文件")
-            config_path = env.get("CONFIG_PATH", "config.json")
-            if path.exists(config_path):
-                with open(config_path, mode="r", encoding="utf-8") as f:
-                    self.cfg = Config.from_json(f.read())
-            with open(config_path, mode="w+", encoding="utf-8") as f:
-                f.write(self.cfg.to_json(indent=4, ensure_ascii=False))
+            _config_path = env.get("CONFIG_PATH", "config.json")
+            if path.exists(_config_path):
+                self.loadCfg()
+            self.saveCfg()
             if self.cfg.token == "":
                 logging.error("未设置丰巢的token,无法运行此程序。")
                 return -2

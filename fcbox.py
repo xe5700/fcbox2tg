@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 # 丰巢盒子
+import logging
+import math
 
 from appcfg import Config
 import time
@@ -10,7 +12,8 @@ import myrandom
 
 def 获取快件列表(cfg: Config) -> fcboxjson.FcBoxPackageReponse:
     user_agent = cfg.user_agent.format(ip=cfg.ip, device_id=cfg.device, fc_code=cfg.fc_ver_code,
-                                       fc_ver=cfg.fc_ver_name, timestamp=time.time() * 1000 + myrandom.生成随机毫秒())
+                                       fc_ver=cfg.fc_ver_name, timestamp=round(time.time()) * 1000 +
+                                       myrandom.生成随机毫秒())
     headers = {
         'User-Agent': user_agent,
         'FC_USER_FLAG': '',
@@ -26,6 +29,7 @@ def 获取快件列表(cfg: Config) -> fcboxjson.FcBoxPackageReponse:
             ii = nrep.data[i]
             if type(ii) == dict:
                 nrep.data[i] = fcboxjson.FcBoxPackage.from_dict(ii)
+    logging.debug(str(nrep))
     return nrep
 
 

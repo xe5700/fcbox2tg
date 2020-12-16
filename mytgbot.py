@@ -88,6 +88,31 @@ class TgBot:
                 logging.exception(e)
         asyncio.run_coroutine_threadsafe(asyncrefresh(), self.app.t1.get_loop())
 
+    @tg_cmd
+    def setToken(self, update: Update, context: CallbackContext):
+        t = update.message.text.split(" ")
+        if len(t) < 2:
+            update.message.reply_text(text="参数错误！请输入/settoken <新的丰巢token>")
+        else:
+            async def asyncSetToken():
+                self.app.cfg.token = t[1]
+                update.message.reply_text(text=f"将你的Token设置为{t:1}， 并且将会进行刷新包裹操作。")
+                self.app.saveCfg()
+                await self.app.读取包裹信息()
+            asyncio.run_coroutine_threadsafe(asyncSetToken(), self.app.t1.get_loop())
+        update.message.delete()
+
+    @tg_cmd
+    def setToken(self, update: Update, context: CallbackContext):
+        update.message.delete()
+
+        update.message.reply_text(text='''
+/list 列出全部未取出的快递
+/refresh 刷新包裹信息
+/setToken <丰巢Token> 重新设置丰巢Token值
+
+        ''')
+
     def sendMessage(self, **kwargs) -> List[telegram.message.Message]:
         msgs = list()
         for i in self.cfg.telegram.recivers:
@@ -100,12 +125,16 @@ class TgBot:
         cmd_list = BotCmd(command="list", description="列出全部未取出的快递")
         cmd_start = BotCmd(command="start", description="启动")
         cmd_refresh = BotCmd(command="refresh", description="重新获取包裹")
+        cmd_set_token = BotCmd(command="setToken", description="重新设置丰巢Token值")
         cmds = self.bot.commands
-        cmds.extend([cmd_start, cmd_list, cmd_refresh])
+        cmds.extend([cmd_start, cmd_list, cmd_refresh, cmd_set_token])
         handler_list = CommandHandler('list', self.list)
         handler_start = CommandHandler('start', self.start)
         handler_refresh = CommandHandler('refresh', self.refresh)
+        handler_stoken = CommandHandler('saveToken', self.setToken)
         self.dispatcher.add_handler(handler_list)
         self.dispatcher.add_handler(handler_start)
         self.dispatcher.add_handler(handler_refresh)
+        self.dispatcher.add_handler(handler_stoken)
+
         self.updater.start_polling()
